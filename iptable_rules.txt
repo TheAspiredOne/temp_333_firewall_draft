@@ -38,7 +38,23 @@ Allow any host from the network 10.229.*.* to access the tftp service of your Li
 
 
 
-Allow any host from any network to connect to the ssh service port on any of your group's hosts as well as allow ICMP echo messages and responses (pings) from any host from any network.
+Allow any host from any network to connect to the ssh service port on any of your group's hosts as well as allow ICMP echo messages and responses (pings) from any host from any network. It is implied that all hosts within your group's network should be allowed complete access to your group's hosts.
 
 
 
+If none of the above rules apply, the default is to refuse all other inbound traffic (that is, unless the inbound traffic is caused by your own group's permitted outbound traffic).
+
+
+
+Log violations of the above rules.
+
+
+
+
+
+Prohibit your Windows host from accessing any services provided by the hosts belonging to group X+1 (1 if X=13) and all services provided by hosts 10.229.100.96 and 10.229.96.*
+
+
+
+
+Log any violations of the above restriction.

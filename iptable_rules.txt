@@ -1,39 +1,39 @@
+
+
 Allow any host from the network 10.229.*.* to access the ftp service of your Windows host EXCEPT for connections coming from hosts belonging to group X+1 (or group 1 if X=13) AND connections coming from hosts 10.229.100.96 and 10.229.96.*
 
-	iptables -A INPUT -p ftp -s 10.229.100.96 --dport WINDOWS_PORT -j DROP
-	iptables -A INPUT -p ftp -s 10.229.96.* --dport WINDOWS_PORT -j DROP
-	iptables -A INPUT -p ftp -s 10.229.6.1 --dport WINDOWS_PORT -j DROP
-	iptables -A INPUT -p ftp -s 10.229.6.2 --dport WINDOWS_PORT -j DROP
+	iptables -A INPUT -p ftp -s 10.229.100.96 -d 10.229.5.2 -j DROP
+	iptables -A INPUT -p ftp -s 10.229.96.0/255.255.255.0 -d 10.229.5.2 -j DROP
+	iptables -A INPUT -p ftp -s 10.229.6.0/255.255.255.0 -d 10.229.5.2 -j DROP
 
-	iptables -A INPUT -p ftp --dport WINDOWS_PORT -j ACCEPT
+	iptables -A INPUT -p ftp -s 10.229.0.0/255.255.0.0 -d 10.229.5.2 -j ACCEPT
 
 
 Allow any host from the network 10.229.*.* to access the http service of your Linux host EXCEPT for connections coming from hosts belonging to group X-1 (or group 13 if X=1) AND connections coming from hosts 10.229.100.97 and 10.229.97.*
 
-	iptables -A INPUT -p http -s 10.229.4.1 --dport LINUX_PORT -j DROP
-	iptables -A INPUT -p http -s 10.229.4.2 --dport LINUX_PORT -j DROP
-	iptables -A INPUT -p http -s 10.229.100.97 --dport LINUX_PORT -j DROP
-	iptables -A INPUT -p http -s 10.229.97.* --dport LINUX_PORT -j DROP
+	iptables -A INPUT -p http -s 10.229.4.0/255.255.255.0 -d 10.229.5.1 -j DROP
+	iptables -A INPUT -p http -s 10.229.100.97 -d 10.229.5.1 -j DROP
+	iptables -A INPUT -p http -s 10.229.97.0/255.255.255.0 -d 10.229.5.1 -j DROP
 
-	iptables -A INPUT -p http -s 10.229.* --dport LINUX_PORT -j ACCEPT
+	iptables -A INPUT -p http -s 10.229.0.0/255.255.0.0 -d 10.229.5.1 -j ACCEPT
 
 
 
 An http request that is arriving from a network outside of your group and is allowed access (as per the previous rule) should be able to access your web server regardless if it attempts to connect to port 80 or 8080. That is, to networks outside of your group your webserver appears to also be listening on port 80.
 
-
-	some kind of forwarding required
+	
+	iptables -A INPUT -i eth0 -p http --dport 8080 -m state --state NEW,ESTABLISHED -j ACCEPT
+	iptables -t nat -A PREROUTING -p http --dport 80 -j REDIRECT --to-ports 8080
 
 
 
 Allow any host from the network 10.229.*.* to access the tftp service of your Linux host EXCEPT for connections coming from hosts belong to group X+2 (or group 1 for X=12 and group 2 for X=13) AND connections coming from hosts 10.229.100.96 and 10.229.96.*
 
-	iptables -A INPUT -p tftp -s 10.229.7.1 --dport LINUX_PORT -j DROP
-	iptables -A INPUT -p tftp -s 10.229.7.2 --dport LINUX_PORT -j DROP
-	iptables -A INPUT -p tftp -s 10.229.100.96 --dport LINUX_PORT -j DROP	
-	iptables -A INPUT -p tftp -s 10.229.96.* --dport LINUX_PORT -j DROP
+	iptables -A INPUT -p tftp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 -j DROP
+	iptables -A INPUT -p tftp -s 10.229.100.96 -d 10.229.5.1 -j DROP	
+	iptables -A INPUT -p tftp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 -j DROP
 
-	iptables -A INPUT -p tftp -s 10.229.* --dport LINUX_PORT -j DROP
+	iptables -A INPUT -p tftp -s 10.229.0.0/255.255.0.0 -d 10.229.5.1 -j ACCEPT
 
 
 
@@ -41,19 +41,33 @@ Allow any host from the network 10.229.*.* to access the tftp service of your Li
 Allow any host from any network to connect to the ssh service port on any of your group's hosts as well as allow ICMP echo messages and responses (pings) from any host from any network. It is implied that all hosts within your group's network should be allowed complete access to your group's hosts.
 
 
+	iptables -A INPUT -p icmp -dport ssh -j ACCEPT	
+	iptables -A INPUT -dport ssh -j ACCEPT
+
+
 
 If none of the above rules apply, the default is to refuse all other inbound traffic (that is, unless the inbound traffic is caused by your own group's permitted outbound traffic).
+
+	iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
+	iptables -A INPUT -j LOG --log "Violation detected"
+	iptables -P INPUT DROP
 
 
 
 Log violations of the above rules.
 
-
+	
 
 
 
 Prohibit your Windows host from accessing any services provided by the hosts belonging to group X+1 (1 if X=13) and all services provided by hosts 10.229.100.96 and 10.229.96.*
-
+	
+	
+	iptables -A OUTPUT -d 10.229.6.0/255.255.255.0 -j DROP
+	iptables -A OUTPUT -d 10.229.100.96 -j DROP
+	iptables -A OUTPUT -d 10.229.96.0/255.255.255.0 -j DROP
+	
+	iptables -P OUTPUT ACCEPT
 
 
 

@@ -1,116 +1,116 @@
 
 
-#drop all these connections first that are trying to access our ftp service
-iptables -A INPUT -s 10.229.100.96 -d 10.229.5.2 --dport ftp -j LOG --log-prefix "10.229.100.96 trying to access ftp" --log-level 6
-iptables -A INPUT -s 10.229.100.96 -d 10.229.5.2 --dport ftp -j DROP
+#drop all these connections first that are trying to access our ftp service(P)
+iptables -A INPUT -p tcp --dport ftp -j LOG --log-prefix "10.229.100.96 ftp" --log-level 6
+iptables -A INPUT -p tcp --dport ftp -j DROP
 
-iptables -A INPUT -s 10.229.96.0/255.255.255.0 -d 10.229.5.2 --dport ftp -j LOG --log-prefix "10.229.96.* trying to access ftp" --log-level 6
-iptables -A INPUT -s 10.229.96.0/255.255.255.0 -d 10.229.5.2 --dport ftp -j DROP
+iptables -A INPUT -s 10.229.96.0/255.255.255.0 -d 10.229.5.2 -p tcp --dport ftp -j LOG --log-prefix "10.229.96.* ftp" --log-level 6
+iptables -A INPUT -s 10.229.96.0/255.255.255.0 -d 10.229.5.2 -p tcp --dport ftp -j DROP
 
-iptables -A INPUT -s 10.229.6.0/255.255.255.0 -d 10.229.5.2 --dport ftp -j LOG --log-prefix "10.229.6.* trying to access ftp" --log-level 6
-iptables -A INPUT -s 10.229.6.0/255.255.255.0 -d 10.229.5.2 --dport ftp -j DROP
+iptables -A INPUT -s 10.229.6.0/255.255.255.0 -d 10.229.5.2 -p tcp --dport ftp -j LOG --log-prefix "10.229.6.* ftp" --log-level 6
+iptables -A INPUT -s 10.229.6.0/255.255.255.0 -d 10.229.5.2 -p tcp --dport ftp -j DROP
 
 
-#establish ftp connection
+#establish ftp connection(F)
 iptables -A INPUT  -s 10.229.0.0/255.255.0.0 -d 10.229.5.2 -p tcp -m tcp --dport 21 -m conntrack --ctstate ESTABLISHED,NEW -j ACCEPT 
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.0.0/255.255.0.0 -p tcp -m tcp --dport 21 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT 
 
 
-#active data transfer
+#active data transfer(F)
 iptables -A INPUT  -s 10.229.0.0/255.255.0.0 -d 10.229.5.2 -p tcp -m tcp --dport 20 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.0.0/255.255.0.0 -p tcp -m tcp --dport 20 -m conntrack --ctstate ESTABLISHED -j ACCEPT 
 
 
-#passive data transfer
+#passive data transfer(F)
 iptables -A INPUT  -p tcp -m tcp --sport 1024: --dport 1024: -m conntrack --ctstate ESTABLISHED -j ACCEPT 
 iptables -A OUTPUT -p tcp -m tcp --sport 1024: --dport 1024: -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 
 
 
 
-#redirect traffic going to port 80 to port 8080
+#redirect traffic going to port 80 to port 8080(F)
 iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080
 
 
 
-#drop these connections that are trying to access our http service
-iptables -A INPUT -p http -s 10.229.4.0/255.255.255.0 -d 10.229.5.1 --8080 http -j LOG --log-prefix "10.229.4.* trying to access http" --log-level 6
-iptables -A INPUT -p http -s 10.229.4.0/255.255.255.0 -d 10.229.5.1 --8080 http -j DROP
+#drop these connections that are trying to access our http service(P)
+iptables -A INPUT -p tcp -s 10.229.4.0/255.255.255.0 -d 10.229.5.1 --dport 8080 -j LOG --log-prefix "10.229.4.* http" --log-level 6
+iptables -A INPUT -p tcp -s 10.229.4.0/255.255.255.0 -d 10.229.5.1 --dport 8080 -j DROP
 
-iptables -A INPUT -p http -s 10.229.100.97 -d 10.229.5.1 --dport 8080 -j LOG --log-prefix "10.229.100.97* trying to access http" --log-level 6
-iptables -A INPUT -p http -s 10.229.100.97 -d 10.229.5.1 --dport 8080 -j DROP
-
-
-iptables -A INPUT -p http -s 10.229.97.0/255.255.255.0 -d 10.229.5.1 --dport 8080 -j LOG --log-prefix "10.229.97.* trying to access http" --log-level 6
-iptables -A INPUT -p http -s 10.229.97.0/255.255.255.0 -d 10.229.5.1 --dport 8080 -j DROP
+iptables -A INPUT -p tcp -s 10.229.100.97 -d 10.229.5.1 --dport 8080 -j LOG --log-prefix "10.229.100.97* http" --log-level 6
+iptables -A INPUT -p tcp -s 10.229.100.97 -d 10.229.5.1 --dport 8080 -j DROP
 
 
-#allow incoming connections through port 8080
+iptables -A INPUT -p tcp -s 10.229.97.0/255.255.255.0 -d 10.229.5.1 --dport 8080 -j LOG --log-prefix "10.229.97.* http" --log-level 6
+iptables -A INPUT -p tcp -s 10.229.97.0/255.255.255.0 -d 10.229.5.1 --dport 8080 -j DROP
+
+
+#allow incoming connections through port 8080(P)
 iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0  -d 10.229.5.1 --dport 8080 -m state --state NEW,ESTABLISHED -j ACCEPT
 iptables -A OUTPUT -p tcp -s 10.229.5.1 --sport 8080 -d 10.229.0.0/255.255.0.0 -m state --state ESTABLISHED -j ACCEPT
 
 
-#allow outgoing connections through port 8080
+#allow outgoing connections through port 8080(P)
 iptables -A OUTPUT -p tcp -s 10.229.5.1 -d 10.229.0.0/255.255.0.0 --sport 8080 -m state --state NEW,ESTABLISHED -j ACCEPT
 iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0 --dport 8080 -d 10.229.5.1 -m state --state ESTABLISHED -j ACCEPT
 
 
 
-#drop these connections that are trying to access our tftp service
-iptables -A INPUT -p tcp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.7.* trying to access tftp" --log-level 6
+#drop these connections that are trying to access our tftp service(P)
+iptables -A INPUT -p tcp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.7.* tftp" --log-level 6
 iptables -A INPUT -p tcp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j DROP
 
-iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.100.96 trying to access tftp" --log-level 6	
+iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.100.96 tftp" --log-level 6	
 iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.1 --dport tftp -j DROP	
 
-iptables -A INPUT -p tcp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.96.* trying to access tftp" --log-level 6
+iptables -A INPUT -p tcp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.96.* tftp" --log-level 6
 iptables -A INPUT -p tcp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j DROP
 
 
 
-#allow incoming connections through tftp port
+#allow incoming connections through tftp port(P)
 iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0  -d 10.229.5.1 --dport tftp -m state --state NEW,ESTABLISHED -j ACCEPT
 iptables -A OUTPUT -p tcp -s 10.229.5.1 --sport tftp -d 10.229.0.0/255.255.0.0 -m state --state ESTABLISHED -j ACCEPT
 
 
-#allow outgoing connections through tftp port
+#allow outgoing connections through tftp port(P)
 iptables -A OUTPUT -p tcp -s 10.229.5.1 -d 10.229.0.0/255.255.0.0 --sport tftp -m state --state NEW,ESTABLISHED -j ACCEPT
 iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0 --dport tftp -d 10.229.5.1 -m state --state ESTABLISHED -j ACCEPT
 
 
 
-#allow connection to ssh port
+#allow connection to ssh port(P)
 iptables -A INPUT -p tcp -d 10.229.5.0/255.255.255.0 --dport ssh -m state --state NEW,ESTABLISHED -j ACCEPT
 iptables -A OUTPUT -p tcp -s 10.229.5.0/255.255.255.0 --sport ssh -m state --state ESTABLISHED -j ACCEPT
 
 
 
-#allow incoming ICMP echo request  and pings from any host from any network
+#allow incoming ICMP echo request  and pings from any host from any network(P)
 iptables -A INPUT -p icmp --icmp-type 8  -d 10.229.5.0/255.255.255.0 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
 iptables -A OUTPUT -p icmp --icmp-type 0 -s 10.229.5.0/255.255.255.0 -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 
 	
-#drop all reqeusts trying to access the prohibited hosts
-iptables -A OUTPUT -s 10.229.5.2 -d 10.229.6.0/255.255.255.0 -j LOG --log-prefix "trying to access 10.229.6.*" --log-level 6
+#drop all reqeusts trying to access the prohibited hosts(P)
+iptables -A OUTPUT -s 10.229.5.2 -d 10.229.6.0/255.255.255.0 -j LOG --log-prefix "trying 10.229.6.*" --log-level 6
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.6.0/255.255.255.0 -j DROP
 
-iptables -A OUTPUT -s 10.229.5.2 -d 10.229.100.96 -j LOG --log-prefix "trying to access 10.229.100.96" --log-level 6
+iptables -A OUTPUT -s 10.229.5.2 -d 10.229.100.96 -j LOG --log-prefix "trying 10.229.100.96" --log-level 6
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.100.96 -j DROP
 
-iptables -A OUTPUT -s 10.229.5.2 -d 10.229.96.0/255.255.255.0 -j LOG --log-prefix "trying to access 10.229.96.*" --log-level 6
+iptables -A OUTPUT -s 10.229.5.2 -d 10.229.96.0/255.255.255.0 -j LOG --log-prefix "trying 10.229.96.*" --log-level 6
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.96.0/255.255.255.0 -j DROP
 
 
-#log all dropped inputs 
-iptables -A INPUT -j LOG --log-prefix "no input rule matched" --log-level 6
+#log all dropped inputs (P)
+iptables -A INPUT -j LOG --log-prefix "no rule matched" --log-level 6
 
 
 
-#default to refuse all other inbound traffic	
+#default to refuse all other inbound traffic(P)	
 iptables -P INPUT DROP
 
 
-#default is to let our host access eveything else
+#default is to let our host access eveything else(P)
 iptables -P OUTPUT ACCEPT
 
 

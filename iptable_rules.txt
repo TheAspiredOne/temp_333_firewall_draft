@@ -76,11 +76,6 @@ iptables -A OUTPUT -p icmp --icmp-type 0 -s 10.229.5.0/255.255.255.0 -m state --
 #default to refuse all other inbound traffice	
 iptables -P INPUT DROP
 
-
-
-
-
-Prohibit your Windows host from accessing any services provided by the hosts belonging to group X+1 (1 if X=13) and all services provided by hosts 10.229.100.96 and 10.229.96.*
 	
 #drop all reqeusts trying to access the prohibited hosts
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.6.0/255.255.255.0 -j DROP

@@ -1,8 +1,30 @@
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name   
+tcp        0      0 0.0.0.0:111             0.0.0.0:*               LISTEN     2633/rpc.portmap    
+tcp        0      0 0.0.0.0:6000            0.0.0.0:*               LISTEN     2966/X              
+tcp        0      0 0.0.0.0:113             0.0.0.0:*               LISTEN     2774/inetd          
+tcp        0      0 0.0.0.0:21              0.0.0.0:*               LISTEN     2955/vsftpd         
+tcp        0      0 10.229.5.1:22           0.0.0.0:*               LISTEN     2788/sshd           
+udp        0      0 10.229.5.1:69           0.0.0.0:*                          3301/opentftpd      
+udp        0      0 10.229.100.5:69         0.0.0.0:*                          3301/opentftpd      
+udp        0      0 127.0.0.1:69            0.0.0.0:*                          3301/opentftpd      
+udp        0      0 0.0.0.0:55761           0.0.0.0:*                          2774/inetd          
+udp        0      0 0.0.0.0:111             0.0.0.0:*                          2633/rpc.portmap    
+udp        0      0 0.0.0.0:41976           0.0.0.0:*                          2774/inetd
 
-mywebcontent.html
+
+
+
+
+mod_auth_sspi
+
+
+
+mywebcontent.html is changed
+
+
 #drop all these connections first that are trying to access our ftp service(P)
-iptables -A INPUT -p tcp --dport ftp -j LOG --log-prefix "10.229.100.96 ftp" --log-level 6
-iptables -A INPUT -p tcp --dport ftp -j DROP
+iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.2 --dport ftp -j LOG --log-prefix "10.229.100.96 ftp" --log-level 6
+iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.2 --dport ftp -j DROP
 
 iptables -A INPUT -s 10.229.96.0/255.255.255.0 -d 10.229.5.2 -p tcp --dport ftp -j LOG --log-prefix "10.229.96.* ftp" --log-level 6
 iptables -A INPUT -s 10.229.96.0/255.255.255.0 -d 10.229.5.2 -p tcp --dport ftp -j DROP
@@ -56,25 +78,28 @@ iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0 --dport 8080 -d 10.229.5.1 -m
 
 
 #drop these connections that are trying to access our tftp service(P)
-iptables -A INPUT -p tcp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.7.* tftp" --log-level 6
-iptables -A INPUT -p tcp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j DROP
+iptables -A INPUT -p udp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.7.* tftp" --log-level 6
+iptables -A INPUT -p udp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j DROP
 
-iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.100.96 tftp" --log-level 6	
-iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.1 --dport tftp -j DROP	
+iptables -A INPUT -p udp -s 10.229.100.96 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.100.96 tftp" --log-level 6	
+iptables -A INPUT -p udp -s 10.229.100.96 -d 10.229.5.1 --dport tftp -j DROP	
 
-iptables -A INPUT -p tcp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.96.* tftp" --log-level 6
-iptables -A INPUT -p tcp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j DROP
+iptables -A INPUT -p udp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.96.* tftp" --log-level 6
+iptables -A INPUT -p udp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j DROP
 
 
 
 #allow incoming connections through tftp port(P)
-iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0  -d 10.229.5.1 --dport tftp -m state --state NEW,ESTABLISHED -j ACCEPT
-iptables -A OUTPUT -p tcp -s 10.229.5.1 --sport tftp -d 10.229.0.0/255.255.0.0 -m state --state ESTABLISHED -j ACCEPT
+iptables -A INPUT -p udp -s 10.229.0.0/255.255.0.0  -d 10.229.5.1 --dport tftp -m state --state NEW,ESTABLISHED -j ACCEPT
 
 
 #allow outgoing connections through tftp port(P)
-iptables -A OUTPUT -p tcp -s 10.229.5.1 -d 10.229.0.0/255.255.0.0 --sport tftp -m state --state NEW,ESTABLISHED -j ACCEPT
-iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0 --dport tftp -d 10.229.5.1 -m state --state ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -p udp -s 10.229.5.1 -d 10.229.0.0/255.255.0.0 --sport tftp -m state --state ESTABLISHED -j ACCEPT
+
+
+#data transfer
+iptables -A INPUT -p udp --sport 1024: --dport 1024: -m state --state ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -p udp --sport 1024: --dport 1024: -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 
 
@@ -89,7 +114,7 @@ iptables -A INPUT -p icmp --icmp-type 8  -d 10.229.5.0/255.255.255.0 -m state --
 iptables -A OUTPUT -p icmp --icmp-type 0 -s 10.229.5.0/255.255.255.0 -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 
-	
+	here
 #drop all reqeusts trying to access the prohibited hosts(P)
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.6.0/255.255.255.0 -j LOG --log-prefix "trying 10.229.6.*" --log-level 6
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.6.0/255.255.255.0 -j DROP

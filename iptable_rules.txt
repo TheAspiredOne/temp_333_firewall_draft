@@ -22,7 +22,7 @@ mod_auth_sspi
 mywebcontent.html is changed
 
 
-#drop all these connections first that are trying to access our ftp service(P)
+#drop all these connections first that are trying to access our ftp service. Log them first before dropping them
 iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.2 --dport ftp -j LOG --log-prefix "10.229.100.96 ftp" --log-level 6
 iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.2 --dport ftp -j DROP
 
@@ -33,28 +33,28 @@ iptables -A INPUT -s 10.229.6.0/255.255.255.0 -d 10.229.5.2 -p tcp --dport ftp -
 iptables -A INPUT -s 10.229.6.0/255.255.255.0 -d 10.229.5.2 -p tcp --dport ftp -j DROP
 
 
-#establish ftp connection(F)
+#establish ftp connection
 iptables -A INPUT  -s 10.229.0.0/255.255.0.0 -d 10.229.5.2 -p tcp -m tcp --dport 21 -m state --state ESTABLISHED,NEW -j ACCEPT 
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.0.0/255.255.0.0 -p tcp -m tcp --dport 21 -m state --state NEW,ESTABLISHED -j ACCEPT 
 
 
-#active data transfer(F)
+#active data transfer
 iptables -A INPUT  -s 10.229.0.0/255.255.0.0 -d 10.229.5.2 -p tcp -m tcp --dport 20 -m state --state ESTABLISHED,RELATED -j ACCEPT 
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.0.0/255.255.0.0 -p tcp -m tcp --dport 20 -m state --state ESTABLISHED -j ACCEPT 
 
 
-#passive data transfer(F)
+#passive data transfer
 iptables -A INPUT  -p tcp -m tcp --sport 1024: --dport 1024: -m state --state ESTABLISHED -j ACCEPT 
 iptables -A OUTPUT -p tcp -m tcp --sport 1024: --dport 1024: -m state --state ESTABLISHED,RELATED -j ACCEPT 
 
 
 
-#redirect traffic going to port 80 to port 8080(P)
+#redirect traffic going to port 80 to port 8080 using nat table
 iptables -t nat -A PREROUTING  -p tcp --dport 80 -j DNAT --to-destination 1.229.5.2:8080
 
 
 
-#drop these connections that are trying to access our http service(P)
+#drop these connections that are trying to access our http service. Log them first before dropping
 iptables -A INPUT -p tcp -s 10.229.4.0/255.255.255.0 -d 10.229.5.1 --dport 8080 -j LOG --log-prefix "10.229.4.* http" --log-level 6
 iptables -A INPUT -p tcp -s 10.229.4.0/255.255.255.0 -d 10.229.5.1 --dport 8080 -j DROP
 
@@ -66,18 +66,18 @@ iptables -A INPUT -p tcp -s 10.229.97.0/255.255.255.0 -d 10.229.5.1 --dport 8080
 iptables -A INPUT -p tcp -s 10.229.97.0/255.255.255.0 -d 10.229.5.1 --dport 8080 -j DROP
 
 
-#allow incoming connections through port 8080(P)
+#allow incoming connections through port 8080
 iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0  -d 10.229.5.1 --dport 8080 -m state --state NEW,ESTABLISHED -j ACCEPT
 iptables -A OUTPUT -p tcp -s 10.229.5.1 --sport 8080 -d 10.229.0.0/255.255.0.0 -m state --state ESTABLISHED -j ACCEPT
 
 
-#allow outgoing connections through port 8080(P)
+#allow outgoing connections through port 8080
 iptables -A OUTPUT -p tcp -s 10.229.5.1 -d 10.229.0.0/255.255.0.0 --sport 8080 -m state --state NEW,ESTABLISHED -j ACCEPT
 iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0 --dport 8080 -d 10.229.5.1 -m state --state ESTABLISHED -j ACCEPT
 
 
 
-#drop these connections that are trying to access our tftp service(P)
+#drop these connections that are trying to access our tftp service. Log them first before dropping
 iptables -A INPUT -p udp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j LOG --log-prefix "10.229.7.* tftp" --log-level 6
 iptables -A INPUT -p udp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 --dport tftp -j DROP
 
@@ -89,11 +89,11 @@ iptables -A INPUT -p udp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 --dport tftp
 
 
 
-#allow incoming connections through tftp port(P)
+#allow incoming connections through tftp port
 iptables -A INPUT -p udp -s 10.229.0.0/255.255.0.0  -d 10.229.5.1 --dport tftp -m state --state NEW,ESTABLISHED -j ACCEPT
 
 
-#allow outgoing connections through tftp port(P)
+#allow outgoing connections through tftp port
 iptables -A OUTPUT -p udp -s 10.229.5.1 -d 10.229.0.0/255.255.0.0 --sport tftp -m state --state ESTABLISHED -j ACCEPT
 
 
@@ -103,19 +103,19 @@ iptables -A OUTPUT -p udp --sport 1024: --dport 1024: -m state --state ESTABLISH
 
 
 
-#allow connection to ssh port(P)
+#allow connection to ssh port
 iptables -A INPUT -p tcp -d 10.229.5.0/255.255.255.0 --dport ssh -m state --state NEW,ESTABLISHED -j ACCEPT
 iptables -A OUTPUT -p tcp -s 10.229.5.0/255.255.255.0 --sport ssh -m state --state ESTABLISHED -j ACCEPT
 
 
 
-#allow incoming ICMP echo request  and pings from any host from any network(P)
+#allow incoming ICMP echo request  and pings from any host from any network
 iptables -A INPUT -p icmp --icmp-type 8  -d 10.229.5.0/255.255.255.0 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
 iptables -A OUTPUT -p icmp --icmp-type 0 -s 10.229.5.0/255.255.255.0 -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 
-	here
-#drop all reqeusts trying to access the prohibited hosts(P)
+	
+#drop all reqeusts trying to access the prohibited hosts. Log them first before dropping
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.6.0/255.255.255.0 -j LOG --log-prefix "trying 10.229.6.*" --log-level 6
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.6.0/255.255.255.0 -j DROP
 
@@ -126,16 +126,16 @@ iptables -A OUTPUT -s 10.229.5.2 -d 10.229.96.0/255.255.255.0 -j LOG --log-prefi
 iptables -A OUTPUT -s 10.229.5.2 -d 10.229.96.0/255.255.255.0 -j DROP
 
 
-#log all dropped inputs (P)
+#log all dropped inputs 
 iptables -A INPUT -j LOG --log-prefix "no rule matched" --log-level 6
 
 
 
-#default to refuse all other inbound traffic(P)	
+#default to refuse all other inbound traffic
 iptables -P INPUT DROP
 
 
-#default is to let our host access eveything else(P)
+#default is to let our host access eveything else
 iptables -P OUTPUT ACCEPT
 
 

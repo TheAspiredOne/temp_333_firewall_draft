@@ -1,74 +1,94 @@
 
 
-Allow any host from the network 10.229.*.* to access the ftp service of your Windows host EXCEPT for connections coming from hosts belonging to group X+1 (or group 1 if X=13) AND connections coming from hosts 10.229.100.96 and 10.229.96.*
+#drop all these connections first that are trying to access our ftp service
+iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.2 -j DROP
+iptables -A INPUT -p tcp -s 10.229.96.0/255.255.255.0 -d 10.229.5.2 -j DROP
+iptables -A INPUT -p tcp -s 10.229.6.0/255.255.255.0 -d 10.229.5.2 -j DROP
 
-	iptables -A INPUT -p ftp -s 10.229.100.96 -d 10.229.5.2 -j DROP
-	iptables -A INPUT -p ftp -s 10.229.96.0/255.255.255.0 -d 10.229.5.2 -j DROP
-	iptables -A INPUT -p ftp -s 10.229.6.0/255.255.255.0 -d 10.229.5.2 -j DROP
+#establish ftp connection
+iptables -A INPUT -p tcp -m state --state ESTABLISHED -j ACCEPT
+iptables -A INPUT  -p tcp -m tcp --dport 21 -m conntrack --ctstate ESTABLISHED,NEW -j ACCEPT 
+iptables -A OUTPUT -p tcp -m tcp --dport 21 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT 
 
-	iptables -A INPUT -p ftp -s 10.229.0.0/255.255.0.0 -d 10.229.5.2 -j ACCEPT
+#active data transfer
+iptables -A INPUT  -p tcp -m tcp --dport 20 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 
+iptables -A OUTPUT -p tcp -m tcp --dport 20 -m conntrack --ctstate ESTABLISHED -j ACCEPT 
 
-
-Allow any host from the network 10.229.*.* to access the http service of your Linux host EXCEPT for connections coming from hosts belonging to group X-1 (or group 13 if X=1) AND connections coming from hosts 10.229.100.97 and 10.229.97.*
-
-	iptables -A INPUT -p http -s 10.229.4.0/255.255.255.0 -d 10.229.5.1 -j DROP
-	iptables -A INPUT -p http -s 10.229.100.97 -d 10.229.5.1 -j DROP
-	iptables -A INPUT -p http -s 10.229.97.0/255.255.255.0 -d 10.229.5.1 -j DROP
-
-	iptables -A INPUT -p http -s 10.229.0.0/255.255.0.0 -d 10.229.5.1 -j ACCEPT
+#passive data transfer
+iptables -A INPUT  -p tcp -m tcp --sport 1024: --dport 1024: -m conntrack --ctstate ESTABLISHED -j ACCEPT 
+iptables -A OUTPUT -p tcp -m tcp --sport 1024: --dport 1024: -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 
 
 
-
-An http request that is arriving from a network outside of your group and is allowed access (as per the previous rule) should be able to access your web server regardless if it attempts to connect to port 80 or 8080. That is, to networks outside of your group your webserver appears to also be listening on port 80.
-
-	
-	iptables -A INPUT -i eth0 -p http --dport 8080 -m state --state NEW,ESTABLISHED -j ACCEPT
-	iptables -t nat -A PREROUTING -p http --dport 80 -j REDIRECT --to-ports 8080
+#redirect traffice going to port 80 to port 8080
+iptables -A INPUT -i eth0 -p tcp --dport 8080 -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080
 
 
 
-Allow any host from the network 10.229.*.* to access the tftp service of your Linux host EXCEPT for connections coming from hosts belong to group X+2 (or group 1 for X=12 and group 2 for X=13) AND connections coming from hosts 10.229.100.96 and 10.229.96.*
-
-	iptables -A INPUT -p tftp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 -j DROP
-	iptables -A INPUT -p tftp -s 10.229.100.96 -d 10.229.5.1 -j DROP	
-	iptables -A INPUT -p tftp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 -j DROP
-
-	iptables -A INPUT -p tftp -s 10.229.0.0/255.255.0.0 -d 10.229.5.1 -j ACCEPT
+#drop these connections that are trying to access our http service
+iptables -A INPUT -p http -s 10.229.4.0/255.255.255.0 -d 10.229.5.1 -j DROP
+iptables -A INPUT -p http -s 10.229.100.97 -d 10.229.5.1 -j DROP
+iptables -A INPUT -p http -s 10.229.97.0/255.255.255.0 -d 10.229.5.1 -j DROP
+iptables -A INPUT -p http -s 10.229.0.0/255.255.0.0 -d 10.229.5.1 -j ACCEPT
 
 
 
-
-Allow any host from any network to connect to the ssh service port on any of your group's hosts as well as allow ICMP echo messages and responses (pings) from any host from any network. It is implied that all hosts within your group's network should be allowed complete access to your group's hosts.
-
-
-	iptables -A INPUT -p icmp -dport ssh -j ACCEPT	
-	iptables -A INPUT -dport ssh -j ACCEPT
+#allow incoming connections through port 8080
+iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0 --sport 1024:65535 -d 10.229.5.1 --dport 8080 -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -p tcp -s 10.229.5.1 --sport 8080 -d 10.229.0.0/255.255.0.0 --dport 1024:65535 -m state --state ESTABLISHED -j ACCEPT
 
 
-
-If none of the above rules apply, the default is to refuse all other inbound traffic (that is, unless the inbound traffic is caused by your own group's permitted outbound traffic).
-
-	iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
-	iptables -A INPUT -j LOG --log "Violation detected"
-	iptables -P INPUT DROP
+#allow outgoing connections through port 8080
+iptables -A OUTPUT -p tcp -s 10.229.5.1 --sport 1024:65535 -d 10.229.0.0/255.255.0.0 --dport 8080 -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0 --sport 8080 -d 10.229.5.1 --dport 1024:65535 -m state --state ESTABLISHED -j ACCEPT
 
 
 
-Log violations of the above rules.
+#drop these connections that are trying to access out tftp service
+iptables -A INPUT -p tcp -s 10.229.7.0/255.255.255.0 -d 10.229.5.1 -j DROP
+iptables -A INPUT -p tcp -s 10.229.100.96 -d 10.229.5.1 -j DROP	
+iptables -A INPUT -p tcp -s 10.229.96.0/255.255.255.0 -d 10.229.5.1 -j DROP
 
-	
+
+
+#allow incoming connections through tftp port
+iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0 --sport 1024:65535 -d 10.229.5.1 --dport tftp -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -p tcp -s 10.229.5.1 --sport tftp -d 10.229.0.0/255.255.0.0 --dport 1024:65535 -m state --state ESTABLISHED -j ACCEPT
+
+
+#allow outgoing connections through tftp port
+iptables -A OUTPUT -p tcp -s 10.229.5.1 --sport 1024:65535 -d 10.229.0.0/255.255.0.0 --dport tftp -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A INPUT -p tcp -s 10.229.0.0/255.255.0.0 --sport tftp -d 10.229.5.1 --dport 1024:65535 -m state --state ESTABLISHED -j ACCEPT
+
+
+
+#allow connection to ssh port
+iptables -A INPUT -p tcp -d 10.229.5.0/255.255.255.0 --dport ssh -j ACCEPT
+
+
+
+#allow incoming ICMP echo request  and pings from any host from any network
+iptables -A INPUT -p icmp --icmp-type 8  -d 10.229.5.0/255.255.255.0 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -p icmp --icmp-type 0 -s 10.229.5.0/255.255.255.0 -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+
+
+#default to refuse all other inbound traffice	
+iptables -P INPUT DROP
+
+
 
 
 
 Prohibit your Windows host from accessing any services provided by the hosts belonging to group X+1 (1 if X=13) and all services provided by hosts 10.229.100.96 and 10.229.96.*
 	
-	
-	iptables -A OUTPUT -d 10.229.6.0/255.255.255.0 -j DROP
-	iptables -A OUTPUT -d 10.229.100.96 -j DROP
-	iptables -A OUTPUT -d 10.229.96.0/255.255.255.0 -j DROP
-	
-	iptables -P OUTPUT ACCEPT
+#drop all reqeusts trying to access the prohibited hosts
+iptables -A OUTPUT -s 10.229.5.2 -d 10.229.6.0/255.255.255.0 -j DROP
+iptables -A OUTPUT -s 10.229.5.2 -d 10.229.100.96 -j DROP
+iptables -A OUTPUT -s 10.229.5.2 -d 10.229.96.0/255.255.255.0 -j DROP
 
 
+#default is to let our host access eveything else
+iptables -P OUTPUT ACCEPT
 
-Log any violations of the above restriction.
+
